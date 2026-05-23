@@ -1,0 +1,10 @@
+{
+  "name": "mocho-seo-inspector",
+  "version": "0.1.0",
+  "description": "MOCHO SEO Inspector Chrome Extension",
+  "scripts": {
+    "icons": "node scripts/generate-icons.js",
+    "prepare": "node scripts/generate-icons.js"
+  },
+  "private": true
+}
