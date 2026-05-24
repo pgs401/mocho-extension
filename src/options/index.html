@@ -21,14 +21,24 @@
     <main class="page-main">
       <section class="card">
         <h2 class="card-title">API Connection</h2>
-        <p class="card-desc">
-          Connect to your MOCHO account to save analyses, view history, and unlock
-          advanced checks. Get your API key from your
-          <a href="https://app.getmocho.com/settings/api" target="_blank" rel="noopener">MOCHO account settings</a>.
-        </p>
 
         <div class="field">
-          <label class="label" for="apiKey">API Key</label>
+          <label class="label" for="apiKey" style="font-weight:600;font-size:14px">MOCHO API Key</label>
+          <p class="hint" style="margin-bottom:8px">
+            Get your API key from
+            <a href="https://getmocho.com/dashboard/api-keys" target="_blank" rel="noopener"
+               style="color:#2563eb;text-decoration:underline">
+              getmocho.com/dashboard/api-keys
+            </a>.
+            Requires Starter plan or above.
+          </p>
+          <p class="hint" style="margin-bottom:12px">
+            Don't have an account?
+            <a href="https://getmocho.com/signup" target="_blank" rel="noopener"
+               style="color:#2563eb">
+              Sign up free →
+            </a>
+          </p>
           <div class="input-row">
             <input
               class="input"
@@ -49,17 +59,6 @@
           </div>
         </div>
 
-        <div class="field">
-          <label class="label" for="apiBase">API Base URL</label>
-          <input
-            class="input"
-            id="apiBase"
-            type="url"
-            placeholder="https://api.getmocho.com/v1"
-            autocomplete="off"
-          />
-          <p class="hint">Leave blank to use the default MOCHO API endpoint.</p>
-        </div>
 
         <div class="actions">
           <button class="btn btn-primary" id="saveBtn">Save</button>
@@ -84,6 +83,6 @@
     </main>
   </div>
 
-  <script src="main.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>

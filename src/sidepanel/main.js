@@ -1,8 +1,11 @@
+import { matchDomain, getCrawlerStats, postScanResult } from '../lib/mochoApi.js';
+
 // ── State ────────────────────────────────────────────────────────────────────
 let currentTabId = null;
 let currentUrl = null;
 let analysisData = null;
 let activeTabName = 'overview';
+let connectionState = null; // { status, domain, site, stats, error, cta }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -427,6 +430,7 @@ async function runAnalysis() {
 
     setLoadingState(false);
     renderAll(analysisData);
+    saveResultsToMocho(pageData.url, analysisData); // non-blocking
 
   } catch (err) {
     setLoadingState(false);
@@ -921,6 +925,8 @@ async function updateFromActiveTab() {
       $('urlText').className = 'url-text placeholder';
       currentTabId = null;
       currentUrl = null;
+      $('connection-section').innerHTML = '';
+      connectionState = null;
       return;
     }
 
@@ -930,9 +936,12 @@ async function updateFromActiveTab() {
       currentUrl = newUrl;
       $('urlText').textContent = newUrl;
       $('urlText').className = 'url-text';
-      // Clear stale results when navigating to a new URL
       clearResults();
+      connectionState = null;
+      $('connection-section').innerHTML = '';
     }
+
+    checkCurrentTab(newUrl);
   } catch (_) {}
 }
 
@@ -967,19 +976,249 @@ function clearResults() {
   document.querySelectorAll('.tab-badge').forEach((b) => b.remove());
 }
 
-// ── API status ────────────────────────────────────────────────────────────────
-async function updateApiStatus() {
-  const data = await chrome.storage.sync.get(['apiKey']);
-  if (data.apiKey) {
-    $('apiDot').className = 'status-dot connected';
-    $('apiStatusText').textContent = 'MOCHO API connected';
+// ── MOCHO connection ──────────────────────────────────────────────────────────
+async function checkCurrentTab(url) {
+  let domain;
+  try {
+    domain = new URL(url).hostname.replace(/^www\./, '');
+  } catch { return; }
+
+  // Skip if we already have a fresh result for this domain
+  if (connectionState && connectionState.domain === domain &&
+      connectionState.status !== 'loading') return;
+
+  connectionState = { status: 'loading', domain };
+  renderConnectionSection();
+
+  const matchResult = await matchDomain(domain);
+
+  if (!matchResult.ok) {
+    const isNoKey = matchResult.error.includes('No API key');
+    connectionState = { status: isNoKey ? 'no-key' : 'error', domain, error: matchResult.error };
+    renderConnectionSection();
+    updateStatusBar();
+    return;
+  }
+
+  if (!matchResult.data.matched) {
+    connectionState = { status: 'unconnected', domain, cta: matchResult.data.cta };
+    renderConnectionSection();
+    updateStatusBar();
+    return;
+  }
+
+  const site = matchResult.data.site;
+  connectionState = { status: 'connected', domain, site };
+  renderConnectionSection();
+  updateStatusBar();
+
+  const statsResult = await getCrawlerStats(site.id);
+  if (statsResult.ok) {
+    connectionState.stats = statsResult.data;
+    renderConnectionSection();
+  }
+}
+
+function signupCTA() {
+  return `
+    <div class="conn-signup-cta">
+      <p class="cta-title">New to MOCHO?</p>
+      <p class="cta-body">Free plan available. See your AI Crawl Score in 60 seconds.</p>
+      <a href="https://getmocho.com/signup" target="_blank" rel="noopener noreferrer" class="cta-btn">
+        Sign up free →
+      </a>
+    </div>`;
+}
+
+function renderConnectionSection() {
+  const el = $('connection-section');
+  if (!el || !connectionState) return;
+
+  const { status, domain, site, stats, error } = connectionState;
+
+  if (status === 'loading') {
+    el.innerHTML = `
+      <div class="conn-card">
+        <div class="conn-loading-row">
+          <div class="mini-spinner"></div>
+          <span>Checking MOCHO connection…</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (status === 'no-key') {
+    el.innerHTML = `
+      <div class="conn-card">
+        <div class="conn-card-header">
+          <span class="conn-badge no-key">Connect to MOCHO</span>
+        </div>
+        <p class="conn-body">Add your MOCHO API key in the extension settings to sync this tab with your account.</p>
+        <button class="conn-btn secondary" id="connOpenSettings">Open Settings →</button>
+        ${signupCTA()}
+      </div>`;
+    el.querySelector('#connOpenSettings').addEventListener('click', () => chrome.runtime.openOptionsPage());
+    return;
+  }
+
+  if (status === 'unconnected') {
+    el.innerHTML = `
+      <div class="conn-card">
+        <div class="conn-card-header">
+          <span class="conn-badge unconnected">Not connected to MOCHO</span>
+          <span class="conn-domain">${esc(domain)}</span>
+        </div>
+        <p class="conn-body">
+          This domain isn't in your MOCHO account. Connect it to enable pre-rendering,
+          automatic SEO fixes, and crawler intelligence.
+        </p>
+        <a href="https://getmocho.com/dashboard" target="_blank" rel="noopener noreferrer"
+           class="conn-btn primary">Connect Domain in MOCHO →</a>
+        ${signupCTA()}
+      </div>`;
+    return;
+  }
+
+  if (status === 'error') {
+    el.innerHTML = `
+      <div class="conn-card">
+        <div class="conn-card-header">
+          <span class="conn-badge error">MOCHO connection failed</span>
+        </div>
+        <p class="conn-body">${esc(error || 'Unknown error')}</p>
+        <button class="conn-btn secondary" id="connCheckKey">Check API Key →</button>
+      </div>`;
+    el.querySelector('#connCheckKey').addEventListener('click', () => chrome.runtime.openOptionsPage());
+    return;
+  }
+
+  if (status === 'connected') {
+    let crawlerHtml = `
+      <div class="conn-loading-row" style="margin-top:8px">
+        <div class="mini-spinner"></div>
+        <span>Loading crawler intelligence…</span>
+      </div>`;
+
+    if (stats) {
+      const sc = stats.crawlReadinessScore;
+      const scCls = sc >= 80 ? 'great' : sc >= 60 ? 'good' : sc >= 40 ? 'ok' : 'poor';
+      const topBots = (stats.byBot || []).slice(0, 3);
+
+      crawlerHtml = `
+        <div class="crawler-intel">
+          <div class="crawler-score-row">
+            <div class="crawler-score-num ${scCls}">${sc}</div>
+            <div>
+              <div class="crawler-score-label">AI Crawl Score</div>
+              <div class="crawler-score-verdict ${scCls}">${esc(stats.scoreLabel || '')}</div>
+            </div>
+          </div>
+          <div class="crawler-stats-grid">
+            <div class="crawler-stat">
+              <div class="crawler-stat-val">${stats.totalHits ?? '—'}</div>
+              <div class="crawler-stat-lbl">Bot Hits</div>
+            </div>
+            <div class="crawler-stat">
+              <div class="crawler-stat-val">${stats.aiCrawlerHits ?? '—'}</div>
+              <div class="crawler-stat-lbl">AI Crawlers</div>
+            </div>
+            <div class="crawler-stat">
+              <div class="crawler-stat-val">${stats.cacheHitRate != null ? stats.cacheHitRate.toFixed(1) + '%' : '—'}</div>
+              <div class="crawler-stat-lbl">Cache Hit</div>
+            </div>
+          </div>
+          ${topBots.length ? `
+            <div class="crawler-bots">
+              <div class="section-title-sm">Top bots (30 days)</div>
+              ${topBots.map((b) => `
+                <div class="bot-row">
+                  <span><span class="bot-name">${esc(b.botName)}</span><span class="bot-cat">${esc(b.category)}</span></span>
+                  <span class="bot-count">${b.count.toLocaleString()}</span>
+                </div>`).join('')}
+            </div>` : ''}
+          <a href="https://getmocho.com/dashboard" target="_blank" rel="noopener noreferrer"
+             class="conn-btn primary full-width">View Full Dashboard →</a>
+        </div>`;
+    }
+
+    el.innerHTML = `
+      <div class="conn-card">
+        <div class="conn-card-header">
+          <span class="conn-badge connected">Connected to MOCHO ✓</span>
+          <span class="conn-domain">${esc(site.name || domain)}</span>
+        </div>
+        ${crawlerHtml}
+      </div>`;
+  }
+}
+
+// ── Save results to MOCHO (fire-and-forget) ───────────────────────────────────
+function saveResultsToMocho(url, data) {
+  if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')) return;
+
+  const { pageData, rawComp } = data;
+  const { meta, structuredData, webVitals, jsSignals } = pageData;
+
+  const metaScore  = scoreMeta(meta);
+  const schemaScore = scoreStructuredData(structuredData);
+  const vitalsScore = scoreWebVitals(webVitals);
+  const jsScore    = scoreJSVisibility(jsSignals, rawComp);
+  const total      = metaScore.score + schemaScore.score + vitalsScore.score + jsScore.score;
+
+  const issues = [
+    ...metaScore.issues.map((i) => ({ ...i, type: 'meta' })),
+    ...schemaScore.issues.map((i) => ({ ...i, type: 'schema' })),
+    ...vitalsScore.issues.map((i) => ({ ...i, type: 'vitals' })),
+    ...jsScore.issues.map((i) => ({ ...i, type: 'js-visibility' })),
+  ]
+    .filter((i) => i.level === 'fail' || i.level === 'warn')
+    .map((i) => ({
+      type: i.type,
+      severity: i.level === 'fail' ? 'critical' : 'warning',
+      message: i.text.replace(/<[^>]+>/g, ''),
+    }));
+
+  postScanResult({
+    siteId: connectionState?.status === 'connected' ? connectionState.site.id : undefined,
+    url,
+    scanData: {
+      crawlabilityScore: total,
+      issues,
+      metaTags: {
+        title: meta.title || '',
+        description: meta.description || '',
+        canonical: meta.canonical || '',
+        robots: meta.robots || '',
+      },
+      robotsBlocked: !!(meta.robots && /noindex/i.test(meta.robots)),
+      jsDependent: jsScore.score / jsScore.maxScore < 0.5,
+      renderGap: !!(rawComp && !rawComp.fetchFailed && rawComp.textDelta > 0.5),
+      aiCrawlScore: connectionState?.stats?.crawlReadinessScore,
+      scannedAt: new Date().toISOString(),
+    },
+  }).catch(() => {});
+}
+
+// ── Status bar ────────────────────────────────────────────────────────────────
+function updateStatusBar() {
+  const dot  = $('apiDot');
+  const text = $('apiStatusText');
+  const st   = connectionState?.status;
+
+  if (st === 'connected') {
+    dot.className = 'status-dot connected';
+    text.textContent = `MOCHO: ${connectionState.site?.name || connectionState.domain}`;
+  } else if (st === 'unconnected') {
+    dot.className = 'status-dot disconnected';
+    text.textContent = `${connectionState.domain} — not in MOCHO`;
+  } else if (st === 'error') {
+    dot.className = 'status-dot error';
+    text.textContent = 'MOCHO connection failed';
   } else {
-    $('apiDot').className = 'status-dot disconnected';
-    $('apiStatusText').innerHTML = 'Not connected · <a href="#" id="connectLink">Add API key</a>';
-    $('connectLink').addEventListener('click', (e) => {
-      e.preventDefault();
-      chrome.runtime.openOptionsPage();
-    });
+    dot.className = 'status-dot disconnected';
+    text.innerHTML = 'Not connected · <a href="#" id="connectLink">Add API key</a>';
+    const link = $('connectLink');
+    if (link) link.addEventListener('click', (e) => { e.preventDefault(); chrome.runtime.openOptionsPage(); });
   }
 }
 
@@ -990,12 +1229,16 @@ $('refreshBtn').addEventListener('click', () => {
   if (analysisData) runAnalysis();
 });
 
-// Listen for tab changes
 chrome.tabs.onActivated.addListener(() => updateFromActiveTab());
 chrome.tabs.onUpdated.addListener((tabId, info) => {
   if (tabId === currentTabId && info.status === 'complete') updateFromActiveTab();
 });
-chrome.storage.onChanged.addListener(() => updateApiStatus());
+// Re-check connection when API key is saved in options
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.apiKey) {
+    connectionState = null;
+    if (currentUrl) checkCurrentTab(currentUrl);
+  }
+});
 
 updateFromActiveTab();
-updateApiStatus();

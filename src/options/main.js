@@ -1,11 +1,10 @@
-const DEFAULT_API_BASE = 'https://api.getmocho.com/v1';
+import { verifyConnection } from '../lib/mochoApi.js';
 
 const $ = (id) => document.getElementById(id);
 
 async function loadSettings() {
-  const data = await chrome.storage.sync.get(['apiKey', 'apiBase']);
+  const data = await chrome.storage.sync.get(['apiKey']);
   if (data.apiKey) $('apiKey').value = data.apiKey;
-  if (data.apiBase) $('apiBase').value = data.apiBase;
 }
 
 function showStatus(msg, type) {
@@ -21,58 +20,47 @@ function clearStatus() {
 
 async function saveSettings() {
   const apiKey = $('apiKey').value.trim();
-  const apiBase = $('apiBase').value.trim();
 
   if (!apiKey) {
     showStatus('Enter an API key to save.', 'warning');
     return;
   }
 
-  await chrome.storage.sync.set({ apiKey, apiBase });
+  await chrome.storage.sync.set({ apiKey });
   showStatus('Settings saved.', 'success');
   setTimeout(clearStatus, 3000);
 }
 
 async function testConnection() {
   const apiKey = $('apiKey').value.trim();
-  const apiBase = ($('apiBase').value.trim() || DEFAULT_API_BASE).replace(/\/$/, '');
 
   if (!apiKey) {
     showStatus('Enter an API key first.', 'warning');
     return;
   }
 
+  // Save temporarily so apiFetch can read it
+  await chrome.storage.sync.set({ apiKey });
+
   const btn = $('testBtn');
   btn.disabled = true;
   btn.textContent = 'Testing…';
   clearStatus();
 
-  try {
-    const res = await fetch(`${apiBase}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: 'application/json',
-      },
-    });
+  const result = await verifyConnection();
 
-    if (res.ok) {
-      const json = await res.json().catch(() => ({}));
-      const name = json.name || json.email || 'your account';
-      showStatus(`Connected — logged in as ${name}.`, 'success');
-    } else if (res.status === 401) {
-      showStatus('Invalid API key. Check your MOCHO account settings.', 'error');
-    } else {
-      showStatus(`Server returned ${res.status}. Check the API base URL.`, 'error');
-    }
-  } catch (err) {
-    showStatus(`Connection failed: ${err.message}`, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Test Connection';
+  if (result.ok) {
+    const { name, email, plan } = result.data.user || {};
+    const label = name || email || 'your account';
+    showStatus(`Connected as ${label}${plan ? ` (${plan} plan)` : ''}.`, 'success');
+  } else {
+    showStatus(result.error, 'error');
   }
+
+  btn.disabled = false;
+  btn.textContent = 'Test Connection';
 }
 
-// Toggle API key visibility
 $('toggleVisibility').addEventListener('click', () => {
   const input = $('apiKey');
   input.type = input.type === 'password' ? 'text' : 'password';

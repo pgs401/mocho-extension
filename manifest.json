@@ -7,9 +7,13 @@
     "activeTab",
     "storage",
     "sidePanel",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://getmocho.com/*",
+    "https://*/*"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.js"
   },
