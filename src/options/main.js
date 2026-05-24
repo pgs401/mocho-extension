@@ -3,8 +3,8 @@ import { verifyConnection } from '../lib/mochoApi.js';
 const $ = (id) => document.getElementById(id);
 
 async function loadSettings() {
-  const data = await chrome.storage.sync.get(['apiKey']);
-  if (data.apiKey) $('apiKey').value = data.apiKey;
+  const data = await chrome.storage.sync.get(['mochoApiKey']);
+  if (data.mochoApiKey) $('apiKey').value = data.mochoApiKey;
 }
 
 function showStatus(msg, type) {
@@ -26,7 +26,7 @@ async function saveSettings() {
     return;
   }
 
-  await chrome.storage.sync.set({ apiKey });
+  await chrome.storage.sync.set({ mochoApiKey: apiKey });
   showStatus('Settings saved.', 'success');
   setTimeout(clearStatus, 3000);
 }
@@ -39,8 +39,8 @@ async function testConnection() {
     return;
   }
 
-  // Save temporarily so apiFetch can read it
-  await chrome.storage.sync.set({ apiKey });
+  // Save temporarily so verifyConnection() can read it
+  await chrome.storage.sync.set({ mochoApiKey: apiKey });
 
   const btn = $('testBtn');
   btn.disabled = true;

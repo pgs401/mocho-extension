@@ -687,6 +687,21 @@ body {
   flex-shrink: 0;
 }
 
+/* Site scores row (STATE 3) */
+.conn-scores-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.conn-score-item { text-align: center; }
+.conn-score-val  { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.conn-score-lbl  { font-size: 9px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-top: 1px; }
+.conn-score-sep  { font-size: 11px; color: var(--text-muted); align-self: flex-end; padding-bottom: 12px; }
+
 /* Crawler Intelligence */
 .crawler-intel { margin-top: 10px; }
 

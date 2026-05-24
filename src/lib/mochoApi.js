@@ -7,8 +7,8 @@ const BASE_URL = 'https://getmocho.com/api/ext';
 
 async function getApiKey() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(['apiKey'], (result) => {
-      resolve(result.apiKey || null);
+    chrome.storage.sync.get(['mochoApiKey'], (result) => {
+      resolve(result.mochoApiKey || null);
     });
   });
 }
