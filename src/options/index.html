@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOCHO SEO Inspector — Settings</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <div class="logo">
+        <img src="../../icons/icon48.png" alt="MOCHO" width="32" height="32" />
+        <div>
+          <div class="logo-title">MOCHO SEO Inspector</div>
+          <div class="logo-sub">Settings</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-main">
+      <section class="card">
+        <h2 class="card-title">API Connection</h2>
+
+        <div class="field">
+          <label class="label" for="apiKey" style="font-weight:600;font-size:14px">MOCHO API Key</label>
+          <p class="hint" style="margin-bottom:8px">
+            Get your API key from
+            <a href="https://getmocho.com/dashboard/api-keys" target="_blank" rel="noopener"
+               style="color:#2563eb;text-decoration:underline">
+              getmocho.com/dashboard/api-keys
+            </a>.
+            Requires Starter plan or above.
+          </p>
+          <p class="hint" style="margin-bottom:12px">
+            Don't have an account?
+            <a href="https://getmocho.com/signup" target="_blank" rel="noopener"
+               style="color:#2563eb">
+              Sign up free →
+            </a>
+          </p>
+          <div class="input-row">
+            <input
+              class="input"
+              id="apiKey"
+              type="password"
+              placeholder="mcho_live_…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="btn btn-secondary" id="toggleVisibility" title="Show / hide key">
+              <span id="eyeIcon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+
+
+        <div class="actions">
+          <button class="btn btn-primary" id="saveBtn">Save</button>
+          <button class="btn btn-secondary" id="testBtn">Test Connection</button>
+        </div>
+
+        <div class="status-bar" id="statusBar" aria-live="polite"></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">About</h2>
+        <p class="card-desc">
+          <strong>MOCHO SEO Inspector</strong> v0.1.0 — audits JavaScript rendering
+          visibility, meta tags, structured data, and Core Web Vitals on any page.
+        </p>
+        <p class="card-desc">
+          <a href="https://getmocho.com" target="_blank" rel="noopener">getmocho.com</a>
+          &nbsp;·&nbsp;
+          <a href="https://github.com/pgs401/mocho-extension" target="_blank" rel="noopener">GitHub</a>
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

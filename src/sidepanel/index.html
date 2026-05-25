@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOCHO SEO Inspector</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-logo">
+      <img src="../../icons/icon32.png" alt="MOCHO" width="22" height="22" />
+      <span class="header-title">SEO Inspector</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- URL bar -->
+  <div class="url-bar">
+    <span class="url-text placeholder" id="urlText">No active tab</span>
+    <button class="refresh-btn" id="refreshBtn" title="Re-analyze page">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"/>
+        <polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tab navigation -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="overview" role="tab">Overview</button>
+    <button class="tab" data-tab="meta" role="tab">Meta</button>
+    <button class="tab" data-tab="schema" role="tab">Schema</button>
+    <button class="tab" data-tab="vitals" role="tab">Vitals</button>
+    <button class="tab" data-tab="js" role="tab">JS Vis</button>
+  </nav>
+
+  <!-- Content area -->
+  <main class="content">
+
+    <!-- Overview tab -->
+    <div class="tab-pane active" id="pane-overview">
+      <div id="connection-section"></div>
+      <div class="empty-state" id="overview-idle">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <line x1="11" y1="8" x2="11" y2="14"/>
+          <line x1="8" y1="11" x2="14" y2="11"/>
+        </svg>
+        <div class="empty-state-title">Analyze the current page</div>
+        <div class="empty-state-sub">Click the button below to audit meta tags, structured data, Core Web Vitals, and JavaScript rendering.</div>
+        <button class="analyze-btn" id="analyzeBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Analyze Page
+        </button>
+      </div>
+      <div id="overview-loading" style="display:none">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div class="loading-msg" id="loadingMsg">Running analysis…</div>
+        </div>
+      </div>
+      <div id="overview-results" style="display:none"></div>
+    </div>
+
+    <!-- Meta tab -->
+    <div class="tab-pane" id="pane-meta">
+      <div class="empty-state" id="meta-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <div class="empty-state-title">No data yet</div>
+        <div class="empty-state-sub">Run an analysis from the Overview tab first.</div>
+      </div>
+      <div id="meta-results" style="display:none"></div>
+    </div>
+
+    <!-- Schema tab -->
+    <div class="tab-pane" id="pane-schema">
+      <div class="empty-state" id="schema-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+        <div class="empty-state-title">No data yet</div>
+        <div class="empty-state-sub">Run an analysis from the Overview tab first.</div>
+      </div>
+      <div id="schema-results" style="display:none"></div>
+    </div>
+
+    <!-- Vitals tab -->
+    <div class="tab-pane" id="pane-vitals">
+      <div class="empty-state" id="vitals-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        <div class="empty-state-title">No data yet</div>
+        <div class="empty-state-sub">Run an analysis from the Overview tab first.</div>
+      </div>
+      <div id="vitals-results" style="display:none"></div>
+    </div>
+
+    <!-- JS Visibility tab -->
+    <div class="tab-pane" id="pane-js">
+      <div class="empty-state" id="js-empty">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <div class="empty-state-title">No data yet</div>
+        <div class="empty-state-sub">Run an analysis from the Overview tab first.</div>
+      </div>
+      <div id="js-results" style="display:none"></div>
+    </div>
+
+  </main>
+
+  <!-- Status bar -->
+  <footer class="status-bar">
+    <div class="status-dot disconnected" id="apiDot"></div>
+    <span id="apiStatusText">Not connected · <a href="#" id="connectLink">Add API key</a></span>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
