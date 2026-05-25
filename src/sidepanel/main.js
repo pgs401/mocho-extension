@@ -1233,7 +1233,6 @@ function updateStatusBar() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 $('settingsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());
-$('analyzeBtn').addEventListener('click', runAnalysis);
 $('refreshBtn').addEventListener('click', () => {
   if (analysisData) runAnalysis();
 });
