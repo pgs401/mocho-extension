@@ -934,16 +934,20 @@ async function updateFromActiveTab() {
 
     currentTabId = tab.id;
 
-    if (newUrl !== currentUrl) {
+    const urlChanged = newUrl !== currentUrl;
+    if (urlChanged) {
       currentUrl = newUrl;
       $('urlText').textContent = newUrl;
       $('urlText').className = 'url-text';
       clearResults();
       connectionState = null;
       $('connection-section').innerHTML = '';
+      // Auto-run analysis on every new page — no login needed
+      runAnalysis();
     }
 
     currentTabUrl = newUrl;
+    // Check MOCHO connection in parallel — never blocks analysis
     checkCurrentTab();
   } catch (_) {}
 }
@@ -955,21 +959,11 @@ function clearResults() {
   $('overview-loading').style.display = 'none';
 
   $('overview-idle').innerHTML = `
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8" x2="11" y2="14"/>
-      <line x1="8" y1="11" x2="14" y2="11"/>
-    </svg>
-    <div class="empty-state-title">Analyze the current page</div>
-    <div class="empty-state-sub">Click the button below to audit meta tags, structured data, Core Web Vitals, and JavaScript rendering.</div>
-    <button class="analyze-btn" id="analyzeBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polygon points="5 3 19 12 5 21 5 3"/>
-      </svg>
-      Analyze Page
-    </button>`;
-  $('analyzeBtn').addEventListener('click', runAnalysis);
+    <div class="mini-spinner" style="width:24px;height:24px;border-width:3px"></div>
+    <div class="empty-state-title">Analyzing page…</div>
+    <div class="empty-state-sub">
+      Checking meta tags, structured data, Core Web Vitals, and JavaScript visibility.
+    </div>`;
 
   ['meta', 'schema', 'vitals', 'js'].forEach((t) => {
     $(`${t}-empty`).style.display = '';
@@ -999,13 +993,6 @@ async function checkCurrentTab() {
       connectionState.status !== 'loading') return;
 
   connectionState = { status: 'loading', domain };
-  $('connection-section').innerHTML = `
-    <div class="conn-card">
-      <div class="conn-loading-row">
-        <div class="mini-spinner"></div>
-        <span>Checking MOCHO connection…</span>
-      </div>
-    </div>`;
 
   const matchResult = await matchDomain(domain);
 
@@ -1043,35 +1030,31 @@ function signupCTA() {
 
 function renderNoKeyState() {
   connectionState = { status: 'no-key', domain: null };
-  const el = $('connection-section');
-  el.innerHTML = `
-    <div class="conn-card">
-      <div class="conn-card-header">
-        <span class="conn-badge no-key">Connect to MOCHO</span>
+  $('connection-section').innerHTML = `
+    <div class="conn-banner no-key">
+      <span>Connect to MOCHO for AI Crawl Score &amp; bot data</span>
+      <div class="conn-banner-actions">
+        <button id="connOpenSettings" class="conn-banner-btn">Add API Key</button>
+        <a href="https://getmocho.com/signup" target="_blank" rel="noopener noreferrer"
+           class="conn-banner-link">Sign up free →</a>
       </div>
-      <p class="conn-body">Add your MOCHO API key in extension settings to sync with your account.</p>
-      <button class="conn-btn secondary" id="connOpenSettings">Open Settings →</button>
-      ${signupCTA()}
     </div>`;
-  el.querySelector('#connOpenSettings').addEventListener('click', () => chrome.runtime.openOptionsPage());
+  document.getElementById('connOpenSettings')
+    .addEventListener('click', () => chrome.runtime.openOptionsPage());
   updateStatusBar();
 }
 
 function renderUnconnectedState(domain, cta) {
   connectionState = { status: 'unconnected', domain };
   $('connection-section').innerHTML = `
-    <div class="conn-card">
-      <div class="conn-card-header">
-        <span class="conn-badge unconnected">Not connected</span>
-        <span class="conn-domain">${esc(domain)}</span>
+    <div class="conn-banner unconnected">
+      <span>${esc(domain)} isn't in your MOCHO account</span>
+      <div class="conn-banner-actions">
+        <a href="https://getmocho.com/dashboard" target="_blank" rel="noopener noreferrer"
+           class="conn-banner-btn">Connect Domain →</a>
+        <a href="https://getmocho.com/signup" target="_blank" rel="noopener noreferrer"
+           class="conn-banner-link">Sign up free →</a>
       </div>
-      <p class="conn-body">
-        ${esc(domain)} isn't in your MOCHO account. Connect it to enable pre-rendering,
-        automatic SEO fixes, and crawler intelligence.
-      </p>
-      <a href="https://getmocho.com/dashboard" target="_blank" rel="noopener noreferrer"
-         class="conn-btn primary">Connect Domain →</a>
-      ${signupCTA()}
     </div>`;
   updateStatusBar();
 }
